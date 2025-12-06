@@ -7,12 +7,14 @@ import {
   deleteMigraineAttackByIdController,
   completeMigraineAttackController,
   migraineCalendarController,
+  getMyMigraineAttacksController,
 } from "../controllers/migraineAttacksController.js";
 
 const router = Router();
 
 router.post("/:id/complete", completeMigraineAttackController);
 router.get("/calendar", migraineCalendarController);
+router.get("/my", getMyMigraineAttacksController);
 router.post("/", createMigraineAttackController);
 router.get("/", getAllMigraineAttacksController);
 router.get("/:id", getMigraineAttackByIdController);

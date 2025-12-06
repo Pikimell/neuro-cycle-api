@@ -5,10 +5,12 @@ import {
   getUserByIdController,
   updateUserByIdController,
   deleteUserByIdController,
+  getCurrentUserController,
 } from "../controllers/usersController.js";
 
 const router = Router();
 
+router.get("/me", getCurrentUserController);
 router.post("/", createUserController);
 router.get("/", getAllUsersController);
 router.get("/:id", getUserByIdController);

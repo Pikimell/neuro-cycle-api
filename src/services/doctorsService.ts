@@ -13,6 +13,10 @@ export const getDoctorByUserId = (userId: string) => {
   return DoctorCollection.findOne({ userId });
 };
 
+export const getDoctorByCode = (doctorCode: string) => {
+  return DoctorCollection.findOne({ doctorCode });
+};
+
 export const getDoctorAvailability = async (id: string) => {
   const doctor = await DoctorCollection.findById(id, { workingHours: 1, fullName: 1, clinic: 1, phone: 1, email: 1 });
   return doctor;

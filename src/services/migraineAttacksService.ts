@@ -10,6 +10,17 @@ export const getMigraineAttackById = service.getById;
 export const updateMigraineAttackById = service.updateById;
 export const deleteMigraineAttackById = service.deleteById;
 
+export const getMigraineAttacksForPatient = (patientId: string, from?: Date, to?: Date) => {
+  const query: Record<string, unknown> = { patientId: new Types.ObjectId(patientId) };
+  if (from || to) {
+    const range: Record<string, Date> = {};
+    if (from) range.$gte = from;
+    if (to) range.$lte = to;
+    query.startDateTime = range;
+  }
+  return MigraineAttackCollection.find(query).sort({ startDateTime: -1 });
+};
+
 export const completeMigraineAttack = (id: string, payload: Partial<MigraineAttack>) => {
   return MigraineAttackCollection.findByIdAndUpdate(
     id,

@@ -5,10 +5,12 @@ import {
   getMedicationByIdController,
   updateMedicationByIdController,
   deleteMedicationByIdController,
+  getMyMedicationsController,
 } from "../controllers/medicationsController.js";
 
 const router = Router();
 
+router.get("/my", getMyMedicationsController);
 router.post("/", createMedicationController);
 router.get("/", getAllMedicationsController);
 router.get("/:id", getMedicationByIdController);

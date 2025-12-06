@@ -1,6 +1,6 @@
 import { MoodEntryCollection } from "../database/models/moodEntries.js";
 import { MigraineAttackCollection } from "../database/models/migraineAttacks.js";
-import { MedicationReminderCollection } from "../database/models/medicationReminders.js";
+import { MedicationCollection } from "../database/models/medications.js";
 import { QuestionnaireResponseCollection } from "../database/models/questionnaireResponses.js";
 
 const getDayRange = (date = new Date()) => {
@@ -14,14 +14,17 @@ const getDayRange = (date = new Date()) => {
 export const getDaySnapshot = async (patientId: string, date?: Date) => {
   const { start, end } = getDayRange(date);
 
-  const [moodEntries, migraineAttacks, medicationReminders, questionnaireResponses] = await Promise.all([
+  const [moodEntries, migraineAttacks, medications, questionnaireResponses] = await Promise.all([
     MoodEntryCollection.find({ patientId, date: { $gte: start, $lte: end } }).sort({ date: -1 }),
     MigraineAttackCollection.find({
       patientId,
       startDateTime: { $lte: end },
       $or: [{ endDateTime: { $gte: start } }, { endDateTime: null }],
     }).sort({ startDateTime: -1 }),
-    MedicationReminderCollection.find({ patientId, isActive: true }),
+    MedicationCollection.find({
+      patientId,
+      isActive: true,
+    }).sort({ startDate: -1 }),
     QuestionnaireResponseCollection.find({
       patientId,
       createdAt: { $gte: start, $lte: end },
@@ -32,7 +35,7 @@ export const getDaySnapshot = async (patientId: string, date?: Date) => {
     date: start,
     moodEntries,
     migraineAttacks,
-    medicationReminders,
+    medications,
     questionnaireResponses,
   };
 };

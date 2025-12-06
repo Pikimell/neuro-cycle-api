@@ -9,4 +9,8 @@ export const getMedicationById = service.getById;
 export const updateMedicationById = service.updateById;
 export const deleteMedicationById = service.deleteById;
 
+export const getMedicationsForPatient = (patientId: string) => {
+  return MedicationCollection.find({ patientId }).sort({ createdAt: -1 });
+};
+
 export default service;

@@ -7,10 +7,12 @@ import {
   deleteDoctorByIdController,
   getCurrentDoctorController,
   getDoctorAvailabilityController,
+  connectDoctorByCodeController,
 } from "../controllers/doctorsController.js";
 
 const router = Router();
 
+router.post("/connect", connectDoctorByCodeController);
 router.get("/me", getCurrentDoctorController);
 router.get("/:id/availability", getDoctorAvailabilityController);
 router.post("/", createDoctorController);

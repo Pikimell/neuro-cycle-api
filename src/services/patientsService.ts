@@ -3,6 +3,7 @@ import { createCrudService } from "./crudServiceFactory.js";
 import { AllergyCollection } from "../database/models/allergies.js";
 import { ChronicConditionCollection } from "../database/models/chronicConditions.js";
 import { SpecialConsiderationsCollection } from "../database/models/specialConsiderations.js";
+import { Types } from "mongoose";
 
 const service = createCrudService<Patient>(PatientCollection, "Patient");
 
@@ -28,6 +29,14 @@ export const getPatientSummary = async (patientId: string) => {
     chronicConditions,
     specialConsiderations,
   };
+};
+
+export const assignDoctorToPatient = (patientId: string, doctorId: string) => {
+  return PatientCollection.findByIdAndUpdate(
+    patientId,
+    { assignedDoctorId: new Types.ObjectId(doctorId) },
+    { new: true }
+  );
 };
 
 export default service;
