@@ -1,4 +1,4 @@
-service: aws-node-express-api
+service: neuro-cycle-api
 
 frameworkVersion: '4'
 

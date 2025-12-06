@@ -1,8 +1,13 @@
 import { UserCollection, type User, type UserDocument } from "../database/models/user.js";
+import { createCrudService } from "./crudServiceFactory.js";
 
-export const createUser = (userData: User) => {
-  return UserCollection.create(userData);
-};
+const service = createCrudService<User>(UserCollection, "User");
+
+export const createUser = service.create;
+export const getAllUsers = service.getAll;
+export const getUserById = service.getById;
+export const updateUserById = service.updateById;
+export const deleteUserById = service.deleteById;
 
 export const getUserByCognito = async (cognitoSub: string): Promise<UserDocument> => {
   const user = await UserCollection.findOne({ cognitoSub });
@@ -13,3 +18,5 @@ export const getUserByCognito = async (cognitoSub: string): Promise<UserDocument
 
   return user;
 };
+
+export default service;

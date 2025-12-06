@@ -36,6 +36,7 @@ export type AuthSession = {
   accessToken: string;
   idToken: string;
   refreshToken: string;
+  cognitoSub?: string;
 };
 
 type RegisterPayload = {
@@ -73,34 +74,39 @@ export const registerUserService = async ({
       }),
     ];
 
-    userPool.signUp(email, password, attributeList, [], (err, result) => {
+    userPool.signUp(email, password, attributeList, [], async (err, result) => {
       if (err || !result?.userSub) {
         return reject(err ?? new Error("Failed to register user"));
       }
 
       const userSub = result.userSub;
+      const role = (group?.toUpperCase() as "PATIENT" | "DOCTOR" | "ADMIN") ?? "PATIENT";
+
+      const persistUser = async () =>
+        createUser({
+          email,
+          passwordHash: password,
+          cognitoSub: userSub,
+          role,
+        });
 
       if (group) {
-        cognito
-          .adminAddUserToGroup({
-            UserPoolId: USER_POOL_ID,
-            Username: email,
-            GroupName: group,
-          })
-          .promise()
-          .then(async () => {
-            await createUser({
-              nickname: email,
-              password,
-              cognitoSub: userSub,
-            });
-            resolve({ message: "User registered and added to group", userSub });
-          })
-          .catch((groupError) => {
-            console.error("Помилка додавання до групи:", groupError);
-            reject(groupError);
-          });
+        try {
+          await cognito
+            .adminAddUserToGroup({
+              UserPoolId: USER_POOL_ID,
+              Username: email,
+              GroupName: group,
+            })
+            .promise();
+          await persistUser();
+          resolve({ message: "User registered and added to group", userSub });
+        } catch (groupError) {
+          console.error("Помилка додавання до групи:", groupError);
+          reject(groupError);
+        }
       } else {
+        await persistUser();
         resolve({ message: "User registered successfully", userSub });
       }
     });
@@ -115,6 +121,7 @@ export const loginService = async ({ email, password }: LoginPayload): Promise<A
           accessToken: result.getAccessToken().getJwtToken(),
           idToken: result.getIdToken().getJwtToken(),
           refreshToken: result.getRefreshToken().getToken(),
+          cognitoSub: result.getIdToken().payload.sub,
         });
       },
       onFailure: (err) => {
@@ -162,6 +169,7 @@ export const refreshService = async (): Promise<AuthSession> => {
             accessToken: newSession.getAccessToken().getJwtToken(),
             idToken: newSession.getIdToken().getJwtToken(),
             refreshToken: newSession.getRefreshToken().getToken(),
+            cognitoSub: newSession.getIdToken().payload.sub,
           });
         }
       );

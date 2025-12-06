@@ -1,8 +1,6 @@
 import { RequestHandler } from "express";
-
-
 import * as authServices from "../services/authService.js";
-import { ONE_DAY, ONE_MONTH } from "../helpers/constants.js";
+import { getUserByCognito } from "../services/userService.js";
 
 export const registerUserController: RequestHandler = async (req, res, next) => {
   try {
@@ -29,29 +27,14 @@ export const loginController: RequestHandler = async (req, res, next) => {
     const { email, password } = req.body as { email: string; password: string };
 
     const session = await authServices.loginService({ email, password });
+    const user = session.cognitoSub ? await getUserByCognito(session.cognitoSub) : null;
 
-    res.cookie("refreshToken", session.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_MONTH,
+    res.status(200).json({
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      idToken: session.idToken,
+      user,
     });
-
-    res.cookie("accessToken", session.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_DAY,
-    });
-
-    res.cookie("sessionId", session.idToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_DAY,
-    });
-
-    res.status(200).json({ accessToken: session.accessToken });
   } catch (err) {
     next(err);
   }
@@ -75,28 +58,11 @@ export const refreshController: RequestHandler = async (_req, res, next) => {
   try {
     const session = await authServices.refreshService();
 
-    res.cookie("refreshToken", session.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_MONTH,
+    res.status(200).json({
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      idToken: session.idToken,
     });
-
-    res.cookie("accessToken", session.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_DAY,
-    });
-
-    res.cookie("sessionId", session.idToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ONE_DAY,
-    });
-
-    res.status(200).json({ accessToken: session.accessToken });
   } catch (err) {
     next(err);
   }
@@ -131,6 +97,17 @@ export const confirmEmailController: RequestHandler = async (req, res, next) => 
     const { email, code } = req.body as { email: string; code: string };
     await authServices.confirmEmailService({ email, code });
     res.status(200).json({ message: "Email confirmed successfully!" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const meController: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    res.status(200).json(req.user);
   } catch (err) {
     next(err);
   }
