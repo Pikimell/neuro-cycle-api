@@ -16,8 +16,6 @@ const questionnaireTemplateSchema = new Schema(
     },
     // Цільовий стан або діагноз
     targetCondition: { type: String, trim: true },
-    // Чи активний цей шаблон в застосунку
-    isActive: { type: Boolean, default: true },
   },
   {
     versionKey: false,
