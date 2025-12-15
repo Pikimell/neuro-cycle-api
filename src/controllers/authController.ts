@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
+import createHttpError from "http-errors";
+
 import * as authServices from "../services/authService.js";
-import { getUserByCognito } from "../services/userService.js";
 
 export const registerUserController: RequestHandler = async (req, res, next) => {
   try {
@@ -27,26 +28,33 @@ export const loginController: RequestHandler = async (req, res, next) => {
     const { email, password } = req.body as { email: string; password: string };
 
     const session = await authServices.loginService({ email, password });
-    const user = session.cognitoSub ? await getUserByCognito(session.cognitoSub) : null;
 
     res.status(200).json({
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       idToken: session.idToken,
-      user,
+      tokenType: "Bearer",
     });
   } catch (err) {
     next(err);
   }
 };
 
-export const logoutController: RequestHandler = async (_req, res, next) => {
+export const logoutController: RequestHandler = async (req, res, next) => {
   try {
-    await authServices.logoutService();
+    const authHeader = req.headers.authorization;
 
-    res.clearCookie("refreshToken");
-    res.clearCookie("accessToken");
-    res.clearCookie("sessionId");
+    if (!authHeader) {
+      throw createHttpError(400, "Missing Authorization header");
+    }
+
+    const [bearer, accessToken] = authHeader.split(" ");
+
+    if (bearer !== "Bearer" || !accessToken) {
+      throw createHttpError(400, "Authorization header should be Bearer <token>");
+    }
+
+    await authServices.logoutService(accessToken);
 
     res.status(200).json({ message: "Logged out successfully!" });
   } catch (err) {
@@ -54,14 +62,22 @@ export const logoutController: RequestHandler = async (_req, res, next) => {
   }
 };
 
-export const refreshController: RequestHandler = async (_req, res, next) => {
+export const refreshController: RequestHandler = async (req, res, next) => {
   try {
-    const session = await authServices.refreshService();
+    const { refreshToken } = req.body as { refreshToken?: string };
+
+    if (!refreshToken) {
+      res.status(400).json({ message: "Missing refreshToken" });
+      return;
+    }
+
+    const session = await authServices.refreshService(refreshToken);
 
     res.status(200).json({
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       idToken: session.idToken,
+      tokenType: "Bearer",
     });
   } catch (err) {
     next(err);
@@ -102,10 +118,10 @@ export const confirmEmailController: RequestHandler = async (req, res, next) => 
   }
 };
 
-export const meController: RequestHandler = async (req, res, next) => {
+export const meController: RequestHandler = (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+      throw createHttpError(401, "Unauthorized");
     }
     res.status(200).json(req.user);
   } catch (err) {
