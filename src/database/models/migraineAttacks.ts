@@ -2,8 +2,8 @@ import { HydratedDocument, InferSchemaType, Schema, model, Types } from "mongoos
 
 const medicationSchema = new Schema(
   {
-    // Опціональне посилання на довідник препаратів
-    medicationId: { type: Types.ObjectId, ref: "medications" },
+    // Опціональне посилання на графік прийому препарату
+    medicationScheduleId: { type: Types.ObjectId, ref: "medication_schedules" },
     // Назва препарату (якщо немає довідника або для дублікації назви)
     name: { type: String, trim: true, required: true },
     // Доза в міліграмах

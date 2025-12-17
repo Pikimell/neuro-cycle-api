@@ -109,38 +109,37 @@
 
 ---
 
-## 7. Модель `Medication` (препарати)
+## 7. Модель `MedicationSchedule` (графік прийому ліків)
 
-| Назва властивості | Тип      | Опис                                              |
-| ----------------- | -------- | ------------------------------------------------- |
-| id                | objectId | Унікальний ідентифікатор препарату                |
-| patientId         | objectId | Посилання на `Patient`                            |
-| name              | string   | Назва препарату                                   |
-| dosageDescription | string   | Опис дози (наприклад, “50 мг двічі на день”)      |
-| form              | string   | Форма (таблетки, краплі, ін’єкція тощо)           |
-| notes             | string   | Примітки (коли приймати, залежність від їжі тощо) |
-| isActive          | boolean  | Чи актуальний препарат                            |
-| createdAt         | datetime | Дата створення                                    |
-| updatedAt         | datetime | Дата оновлення                                    |
+| Назва властивості | Тип      | Опис                                                                  |
+| ----------------- | -------- | --------------------------------------------------------------------- |
+| id                | objectId | Унікальний ідентифікатор графіка                                      |
+| patientId         | objectId | Посилання на `Patient`                                                |
+| medicationName    | string   | Назва препарату                                                       |
+| doseValue         | number   | Кількість дози                                                        |
+| doseUnit          | string   | Одиниця вимірювання дози (мг, мл тощо)                                |
+| startDate         | date     | Початок прийому                                                       |
+| endDate           | date     | Кінець прийому (опційно)                                              |
+| daysOfWeek        | number[] | Дні тижня (0–6), порожній список означає щодня                        |
+| timesOfDay        | string[] | Список часів доби `HH:mm`                                             |
+| recommendations   | string   | Додаткові рекомендації                                                |
+| createdByDoctor   | boolean  | Чи створив запис лікар                                                |
+| timezone          | string   | Часовий пояс, що застосовується для часу прийому/нагадувань           |
+| createdAt         | datetime | Дата створення                                                        |
+| updatedAt         | datetime | Дата оновлення                                                        |
 
 ---
 
-## 8. Модель `MedicationReminder` (нагадування про прийом ліків)
+## 8. Модель `MedicationIntake` (фактичний прийом ліків)
 
-| Назва властивості | Тип      | Опис                                  |
-| ----------------- | -------- | ------------------------------------- |
-| id                | objectId | Унікальний ідентифікатор нагадування  |
-| patientId         | objectId | Посилання на `Patient`                |
-| medicationId      | objectId | Посилання на `Medication`             |
-| timeOfDay         | string   | Час доби (наприклад, `08:00`)         |
-| daysOfWeek        | number[] | Дні тижня (0–6 або 1–7)               |
-| startDate         | date     | Початок дії нагадування               |
-| endDate           | date     | Кінець дії (опційно)                  |
-| timezone          | string   | Часовий пояс для розрахунку сповіщень |
-| isActive          | boolean  | Чи активне нагадування                |
-| lastTakenAt       | datetime | Остання відмітка “прийняв”            |
-| createdAt         | datetime | Дата створення                        |
-| updatedAt         | datetime | Дата оновлення                        |
+| Назва властивості | Тип      | Опис                                    |
+| ----------------- | -------- | --------------------------------------- |
+| id                | objectId | Унікальний ідентифікатор прийому        |
+| scheduleId        | objectId | Посилання на `MedicationSchedule`       |
+| patientId         | objectId | Посилання на `Patient`                  |
+| takenAt           | datetime | Коли був зроблений прийом               |
+| createdAt         | datetime | Дата створення запису                   |
+| updatedAt         | datetime | Дата оновлення                          |
 
 ---
 

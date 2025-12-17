@@ -2,23 +2,57 @@ import { RequestHandler } from "express";
 import createHttpError from "http-errors";
 
 import * as authServices from "../services/authService.js";
+import type { Patient } from "../database/models/patients.js";
 
 export const registerUserController: RequestHandler = async (req, res, next) => {
   try {
-    const { email, password, group } = req.body as {
+    const {
+      email,
+      password,
+      fullName,
+      dateOfBirth,
+      sex,
+      phone,
+      diagnosisType,
+      timezone,
+      preferredLanguage,
+    } = req.body as {
       email: string;
       password: string;
-      group?: string;
+      fullName: string;
+      dateOfBirth: string | Date;
+      sex?: Patient["sex"];
+      phone?: string;
+      diagnosisType?: Patient["diagnosisType"];
+      timezone?: string;
+      preferredLanguage?: string;
     };
+
+    if (!email || !password || !fullName || !dateOfBirth) {
+      throw createHttpError(400, "Missing required registration fields");
+    }
+
+    const allowedSex: Patient["sex"][] = ["MALE", "FEMALE", "OTHER", "UNSPECIFIED"];
+    const normalizedSex = sex && allowedSex.includes(sex) ? sex : undefined;
+
+    const allowedDiagnosis: Patient["diagnosisType"][] = ["NONE", "EPISODIC_MIGRAINE", "CHRONIC_MIGRAINE", "OTHER"];
+    const normalizedDiagnosis = diagnosisType && allowedDiagnosis.includes(diagnosisType) ? diagnosisType : undefined;
 
     const result = await authServices.registerUserService({
       email,
       password,
-      group,
+      fullName,
+      dateOfBirth,
+      sex: normalizedSex,
+      phone,
+      diagnosisType: normalizedDiagnosis,
+      timezone,
+      preferredLanguage,
     });
 
     res.status(201).json(result);
   } catch (err) {
+    console.error("Registration error", err);
     next(err);
   }
 };
@@ -35,7 +69,9 @@ export const loginController: RequestHandler = async (req, res, next) => {
       idToken: session.idToken,
       tokenType: "Bearer",
     });
+    
   } catch (err) {
+    console.error("Login error", err);
     next(err);
   }
 };

@@ -40,9 +40,15 @@
 ## /allergies, /chronic-conditions, /special-considerations
 - Повний CRUD для кожної сутності (create/list/get/update/delete).
 
-## /medications
-- `GET /medications/my` — препарати поточного пацієнта з їхнім графіком (timeOfDay, daysOfWeek, start/end).
-- CRUD: `POST /medications`, `GET /medications`, `GET /medications/:id`, `PATCH /medications/:id`, `DELETE /medications/:id`.
+## /medication-schedules
+- `GET /medication-schedules/my` — графіки прийому поточного пацієнта (з назвами препаратів, дозою, днями/часами, початком/кінцем, рекомендаціями).
+- `POST /medication-schedules/my` — створити графік для себе (пацієнт); `createdByDoctor` виставляється автоматично, якщо запит робить лікар.
+- CRUD/адміністрування: `POST /medication-schedules`, `GET /medication-schedules`, `GET /medication-schedules/:id`, `PATCH /medication-schedules/:id`, `DELETE /medication-schedules/:id` (для ролей із доступом; можна фільтрувати `?patientId=`).
+
+## /medication-intakes
+- `GET /medication-intakes/my?from&to` — історія фактичних прийомів поточного пацієнта.
+- `POST /medication-intakes/my` — зафіксувати прийом за `scheduleId` (час можна передати або використовується поточний).
+- Списки/CRUD для адміністрування: `GET /medication-intakes?patientId=&scheduleId=&from=&to`, `GET /medication-intakes/:id`, `PATCH /medication-intakes/:id`, `DELETE /medication-intakes/:id`, `POST /medication-intakes`.
 
 ## /mood-entries
 - `POST /mood-entries/daily` — зберегти/оновити настрій за сьогодні (повзунок + коментар).
@@ -72,7 +78,7 @@
 - `GET /recommendations` — рекомендації для головного екрану (залежно від настрою/діагнозу).
 
 ## /diary
-- `GET /diary/day?date=YYYY-MM-DD` — знімок дня: настрій, напади, нагадування, відповіді на опитування.
+- `GET /diary/day?date=YYYY-MM-DD` — знімок дня: настрій, напади, активні графіки прийому ліків, фактичні прийоми за день, відповіді на опитування.
 
 ## /news (стаб)
 - `GET /news` — повертає порожній список (заглушка).
