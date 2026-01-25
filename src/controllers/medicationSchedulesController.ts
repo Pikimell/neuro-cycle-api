@@ -62,6 +62,7 @@ const buildSchedulePayload = (
     timesOfDay,
     recommendations,
     timezone,
+    isActive,
   } = body;
   const resolvedTimezone = timezone ?? fallbackTimezone;
 
@@ -90,6 +91,7 @@ const buildSchedulePayload = (
     recommendations: recommendations ? String(recommendations) : undefined,
     createdByDoctor,
     timezone: resolvedTimezone ? String(resolvedTimezone) : undefined,
+    isActive: isActive !== undefined ? Boolean(isActive) : true,
   } as Partial<MedicationSchedule>;
 };
 
@@ -107,6 +109,7 @@ const buildScheduleUpdatePayload = (
     timesOfDay,
     recommendations,
     timezone,
+    isActive,
   } = body;
 
   const payload: Partial<MedicationSchedule> = {};
@@ -126,6 +129,9 @@ const buildScheduleUpdatePayload = (
   if (timezone !== undefined) {
     const resolvedTimezone = timezone ?? fallbackTimezone;
     payload.timezone = resolvedTimezone ? String(resolvedTimezone) : undefined;
+  }
+  if (isActive !== undefined) {
+    payload.isActive = Boolean(isActive);
   }
 
   return payload;
@@ -253,7 +259,7 @@ export const deleteMedicationScheduleByIdController: RequestHandler = async (req
       throw createHttpError(404, "Medication schedule not found");
     }
 
-    res.status(200).json({ message: "Medication schedule deleted" });
+    res.status(200).json({ message: "Medication schedule deactivated" });
   } catch (err) {
     next(err);
   }

@@ -38,6 +38,8 @@ const medicationScheduleSchema = new Schema(
     createdByDoctor: { type: Boolean, default: false },
     // Часовий пояс, за яким розраховуються часи нагадувань
     timezone: { type: String, trim: true },
+    // Чи активне нагадування (для м'якого видалення)
+    isActive: { type: Boolean, default: true },
   },
   {
     versionKey: false,

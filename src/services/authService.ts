@@ -177,35 +177,54 @@ export const registerUserService = async ({
 
   const role: "PATIENT" = "PATIENT";
 
-  const user = await createUser({
-    email,
-    passwordHash: hashPassword(password),
-    cognitoSub: userSub,
-    role,
-  });
+  try {
+    const user = await createUser({
+      email,
+      passwordHash: hashPassword(password),
+      cognitoSub: userSub,
+      role,
+    });
 
-  const parsedDob = new Date(dateOfBirth);
-  if (isNaN(parsedDob.getTime())) {
-    throw new Error("Invalid dateOfBirth");
+    const parsedDob = new Date(dateOfBirth);
+    if (isNaN(parsedDob.getTime())) {
+      throw new Error("Invalid dateOfBirth");
+    }
+
+    const patient = await createPatient({
+      userId: user._id as Patient["userId"],
+      fullName,
+      dateOfBirth: parsedDob,
+      sex: sex ?? undefined,
+      phone,
+      diagnosisType: diagnosisType ?? undefined,
+      timezone,
+      preferredLanguage,
+    });
+
+    return {
+      message: "Patient registered successfully",
+      userSub,
+      userId: user._id,
+      patientId: patient._id,
+    };
+  } catch (error) {
+    // Rollback: Delete the user from Cognito if database write fails
+    try {
+      await cognito
+        .adminDeleteUser({
+          UserPoolId: USER_POOL_ID,
+          Username: email,
+        })
+        .promise();
+      console.log(`Rolled back Cognito user for ${email} due to database error.`);
+    } catch (cognitoError) {
+      console.error(
+        `Critical: Failed to rollback Cognito user for ${email}. Manual cleanup required.`,
+        cognitoError
+      );
+    }
+    throw error;
   }
-
-  const patient = await createPatient({
-    userId: user._id as Patient["userId"],
-    fullName,
-    dateOfBirth: parsedDob,
-    sex: sex ?? undefined,
-    phone,
-    diagnosisType: diagnosisType ?? undefined,
-    timezone,
-    preferredLanguage,
-  });
-
-  return {
-    message: "Patient registered successfully",
-    userSub,
-    userId: user._id,
-    patientId: patient._id,
-  };
 };
 
 export const loginService = async ({ email, password }: LoginPayload): Promise<AuthSession> => {

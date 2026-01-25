@@ -10,10 +10,12 @@ const service = createCrudService<MedicationSchedule>(
 );
 
 export const createMedicationSchedule = service.create;
-export const getAllMedicationSchedules = service.getAll;
+export const getAllMedicationSchedules = () => {
+  return MedicationScheduleCollection.find({ isActive: { $ne: false } });
+};
 
 export const getMedicationScheduleById = (id: string, patientId?: string) => {
-  const filter: Record<string, unknown> = { _id: id };
+  const filter: Record<string, unknown> = { _id: id, isActive: { $ne: false } };
   if (patientId) {
     filter.patientId = patientId;
   }
@@ -40,11 +42,18 @@ export const deleteMedicationScheduleById = (id: string, patientId?: string) => 
   if (patientId) {
     filter.patientId = patientId;
   }
-  return MedicationScheduleCollection.findOneAndDelete(filter);
+  return MedicationScheduleCollection.findOneAndUpdate(
+    filter,
+    { isActive: false },
+    { new: true, runValidators: true }
+  );
 };
 
 export const getMedicationSchedulesForPatient = (patientId: string) => {
-  return MedicationScheduleCollection.find({ patientId }).sort({
+  return MedicationScheduleCollection.find({
+    patientId,
+    isActive: { $ne: false },
+  }).sort({
     startDate: -1,
     createdAt: -1,
   });
@@ -57,6 +66,7 @@ export const getMedicationSchedulesActiveInRange = (
 ) => {
   return MedicationScheduleCollection.find({
     patientId,
+    isActive: { $ne: false },
     startDate: { $lte: rangeEnd },
     $or: [{ endDate: null }, { endDate: { $gte: rangeStart } }],
   }).sort({
