@@ -89,39 +89,6 @@ export const loginController: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const oauthController: RequestHandler = async (req, res, next) => {
-  try {
-    const { provider, identityToken, authorizationCode, email, name } = req.body as {
-      provider?: "google" | "apple";
-      identityToken?: string;
-      authorizationCode?: string;
-      email?: string;
-      name?: string;
-    };
-
-    if (!provider || !identityToken) {
-      throw createHttpError(400, "provider and identityToken are required");
-    }
-
-    const session = await authServices.oauthService({
-      provider,
-      identityToken,
-      authorizationCode,
-      email,
-      name,
-    });
-
-    res.status(200).json({
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-      expiresIn: session.expiresIn,
-      tokenType: "Bearer",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 export const logoutController: RequestHandler = async (req, res, next) => {
   try {
     const refreshToken = requireBearerToken(req.headers.authorization);

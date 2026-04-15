@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import createHttpError from "http-errors";
 
-import { AuthAccountCollection } from "../database/models/authAccount.js";
 import { PasswordAccountCollection } from "../database/models/passwordAccount.js";
 import { RefreshTokenCollection, type RefreshTokenDocument } from "../database/models/refreshToken.js";
 import { UserCollection, type UserDocument } from "../database/models/user.js";
@@ -14,7 +13,6 @@ import {
   hashRefreshToken,
   signAccessToken,
 } from "../helpers/appTokens.js";
-import { verifyProviderIdentityToken, type OAuthProvider, type ResolvedIdentity } from "../helpers/oauthProviders.js";
 
 export type AuthSession = {
   accessToken: string;
@@ -39,14 +37,6 @@ type RegisterPayload = {
 type LoginPayload = {
   login: string;
   password: string;
-};
-
-type OAuthPayload = {
-  provider: OAuthProvider;
-  identityToken: string;
-  authorizationCode?: string;
-  email?: string | null;
-  name?: string | null;
 };
 
 type ResetPasswordPayload = {
@@ -152,88 +142,6 @@ const ensureValidRefreshToken = (tokenRecord: RefreshTokenDocument | null) => {
   return tokenRecord;
 };
 
-const updateUserProfileFromIdentity = async (user: UserDocument, identity: ResolvedIdentity) => {
-  let changed = false;
-
-  if (identity.email && identity.email !== user.email) {
-    user.email = identity.email;
-    changed = true;
-  }
-
-  if (identity.name && !user.name) {
-    user.name = identity.name;
-    changed = true;
-  }
-
-  if (changed) {
-    user.revisionCounter += 1;
-    await user.save();
-  }
-
-  return user;
-};
-
-const resolveOrCreateUser = async (identity: ResolvedIdentity) => {
-  const normalizedEmail = normalizeEmail(identity.email);
-  let authAccount = await AuthAccountCollection.findOne({
-    provider: identity.provider,
-    providerUserId: identity.providerUserId,
-  });
-
-  if (authAccount) {
-    let user = await UserCollection.findOne({ userId: authAccount.userId });
-
-    if (!user) {
-      user = await createUserRecord({ email: normalizedEmail, name: identity.name });
-      authAccount.userId = user.userId;
-    }
-
-    authAccount.set("email", normalizedEmail);
-    authAccount.emailVerified = identity.emailVerified;
-    await authAccount.save();
-
-    await updateUserProfileFromIdentity(user, identity);
-    return user;
-  }
-
-  let user =
-    normalizedEmail && identity.emailVerified
-      ? await UserCollection.findOne({ email: normalizedEmail })
-      : null;
-
-  if (!user) {
-    user = await createUserRecord({ email: normalizedEmail, name: identity.name });
-  } else {
-    await updateUserProfileFromIdentity(user, identity);
-  }
-
-  authAccount = await AuthAccountCollection.findOneAndUpdate(
-    {
-      provider: identity.provider,
-      providerUserId: identity.providerUserId,
-    },
-    {
-      $setOnInsert: {
-        userId: user.userId,
-        provider: identity.provider,
-        providerUserId: identity.providerUserId,
-        email: normalizedEmail,
-        emailVerified: identity.emailVerified,
-      },
-    },
-    {
-      upsert: true,
-      new: true,
-    }
-  );
-
-  if (!authAccount) {
-    throw createHttpError(500, "Failed to link auth account");
-  }
-
-  return user;
-};
-
 export const registerUserService = async (payload: RegisterPayload) => {
   const login = normalizeLogin(payload.login);
   const email = normalizeEmail(payload.email);
@@ -296,13 +204,6 @@ export const loginService = async ({ login, password }: LoginPayload): Promise<A
   }
 
   return issueAuthSession(account.userId);
-};
-
-export const oauthService = async (payload: OAuthPayload): Promise<AuthSession> => {
-  void payload.authorizationCode;
-  const identity = await verifyProviderIdentityToken(payload);
-  const user = await resolveOrCreateUser(identity);
-  return issueAuthSession(user.userId);
 };
 
 export const refreshService = async (refreshToken: string): Promise<AuthSession> => {
