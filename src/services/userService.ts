@@ -9,8 +9,18 @@ export const getUserById = service.getById;
 export const updateUserById = service.updateById;
 export const deleteUserById = service.deleteById;
 
-export const getUserByCognito = async (cognitoSub: string): Promise<UserDocument> => {
-  const user = await UserCollection.findOne({ cognitoSub });
+export const getUserByEmail = async (email: string): Promise<UserDocument> => {
+  const user = await UserCollection.findOne({ email: email.trim().toLowerCase() });
+
+  if (!user) {
+    throw new Error("User not found!");
+  }
+
+  return user;
+};
+
+export const getUserByPublicId = async (userId: string): Promise<UserDocument> => {
+  const user = await UserCollection.findOne({ userId });
 
   if (!user) {
     throw new Error("User not found!");

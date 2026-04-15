@@ -22,6 +22,7 @@ import diaryRouter from "./diary.js";
 const router = Router();
 
 router.use("/auth", authRouter);
+router.use("/v1/auth", authRouter);
 router.use(authenticate);
 router.use("/users", usersRouter);
 router.use("/patients", patientsRouter);

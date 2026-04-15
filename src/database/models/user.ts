@@ -2,33 +2,33 @@ import { HydratedDocument, InferSchemaType, model, Schema } from "mongoose";
 
 const userSchema = new Schema(
   {
-    // Cognito subject для зв'язку з AWS користувачем
-    cognitoSub: {
+    userId: {
       type: String,
       required: true,
       unique: true,
+      index: true,
+      trim: true,
     },
-    // Email для входу, використовується як логін
     email: {
       type: String,
-      required: true,
-      unique: true,
+      default: null,
       lowercase: true,
       trim: true,
     },
-    // Хеш пароля для локальної автентифікації
-    passwordHash: {
+    name: {
       type: String,
-      required: true,
-      select: false,
+      default: null,
+      trim: true,
     },
-    // Роль користувача в застосунку
+    revisionCounter: {
+      type: Number,
+      default: 0,
+    },
     role: {
       type: String,
       enum: ["PATIENT", "DOCTOR", "ADMIN"],
       default: "PATIENT",
     },
-    // Прапорець активності акаунта
     isActive: {
       type: Boolean,
       default: true,
@@ -43,9 +43,9 @@ const userSchema = new Schema(
 export type User = InferSchemaType<typeof userSchema>;
 export type UserDocument = HydratedDocument<User>;
 
-userSchema.methods.toJSON = function (this: UserDocument) {
-  const { passwordHash, ...rest } = this.toObject();
-  return rest;
-};
+userSchema.index(
+  { email: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { email: { $type: "string" } } }
+);
 
 export const UserCollection = model<User>("users", userSchema);

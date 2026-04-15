@@ -1,51 +1,45 @@
-import { CognitoJwtVerifier } from 'aws-jwt-verify';
-import type { CognitoAccessTokenPayload } from 'aws-jwt-verify/jwt-model';
-import createHttpError from 'http-errors';
-import type { RequestHandler } from 'express';
+import createHttpError from "http-errors";
+import type { RequestHandler } from "express";
 
-import { CLIENT_ID, USER_POOL_ID } from '../helpers/constants.js';
-import { getUserByCognito } from '../services/userService.js';
-
-const verifier = CognitoJwtVerifier.create({
-  userPoolId: USER_POOL_ID,
-  tokenUse: 'access',
-  clientId: CLIENT_ID,
-});
+import { UserCollection } from "../database/models/user.js";
+import { verifyAccessToken, getBearerToken } from "../helpers/appTokens.js";
 
 export const authenticate: RequestHandler = async (req, _res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-
-    if (!authHeader) {
-      return next(createHttpError(401, 'Please provide Authorization header'));
+    const token = getBearerToken(req.headers.authorization);
+    if (!token) {
+      req.auth = undefined;
+      req.user = undefined;
+      req.typeAccount = null;
+      return next();
     }
 
-    const [bearer, token] = authHeader.split(' ');
-
-    if (bearer !== 'Bearer' || !token) {
-      return next(createHttpError(401, 'Auth header should be of type Bearer'));
+    const payload = verifyAccessToken(token);
+    if (!payload) {
+      req.auth = undefined;
+      req.user = undefined;
+      req.typeAccount = null;
+      return next();
     }
 
-    console.log('TOKEN', token);
-
-    let payload: CognitoAccessTokenPayload;
-    try {
-      payload = (await verifier.verify(token)) as CognitoAccessTokenPayload;
-    } catch (err) {
-      console.error('JWT Verification error:', err);
-      return next(createHttpError(401, 'Invalid token'));
+    const user = await UserCollection.findOne({ userId: payload.user_id });
+    if (!user || !user.isActive) {
+      throw createHttpError(401, "User not found associated with this token.");
     }
 
-    try {
-      const user = await getUserByCognito(payload.sub);
-      req.user = user;
-      req.typeAccount = payload['cognito:groups']?.[0] ?? null;
-      next();
-    } catch (err) {
-      console.error('User lookup error:', err);
-      return next(createHttpError(401, 'User not found associated with this token.'));
-    }
+    req.auth = {
+      userId: payload.user_id,
+      issuedAt: payload.iat,
+      expiresAt: payload.exp,
+      authToken: token,
+    };
+    req.user = user;
+    req.typeAccount = user.role ?? null;
+    next();
   } catch (err) {
-    next(err);
+    req.auth = undefined;
+    req.user = undefined;
+    req.typeAccount = null;
+    next();
   }
 };
