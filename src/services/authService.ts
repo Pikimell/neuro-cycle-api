@@ -101,6 +101,18 @@ const createUserRecord = async (params: { email?: string | null; name?: string |
   return user;
 };
 
+const ensurePlatformUserId = async (user: UserDocument) => {
+  const currentUserId = typeof user.userId === "string" ? user.userId.trim() : "";
+  if (currentUserId) {
+    return currentUserId;
+  }
+
+  user.userId = crypto.randomUUID();
+  user.revisionCounter += 1;
+  await user.save();
+  return user.userId;
+};
+
 const maybeCreatePatientProfile = async (
   user: UserDocument,
   params: Pick<
@@ -171,8 +183,10 @@ export const registerUserService = async (payload: RegisterPayload) => {
   }
 
   try {
+    const platformUserId = await ensurePlatformUserId(user);
+
     await PasswordAccountCollection.create({
-      userId: user.userId,
+      userId: platformUserId,
       login,
       passwordHash: await bcrypt.hash(payload.password, BCRYPT_ROUNDS),
     });
@@ -181,10 +195,10 @@ export const registerUserService = async (payload: RegisterPayload) => {
       await maybeCreatePatientProfile(user, payload);
     }
 
-    return issueAuthSession(user.userId);
+    return issueAuthSession(platformUserId);
   } catch (error) {
     if (createdUser) {
-      await UserCollection.deleteOne({ userId: user.userId });
+      await UserCollection.deleteOne({ _id: user._id });
     }
     throw error;
   }
@@ -244,7 +258,8 @@ export const resetPasswordService = async ({
   if (!account) {
     const user = await UserCollection.findOne({ email: normalizeEmail(loginOrEmail) });
     if (user) {
-      account = await PasswordAccountCollection.findOne({ userId: user.userId }).select("+passwordHash");
+      const platformUserId = await ensurePlatformUserId(user);
+      account = await PasswordAccountCollection.findOne({ userId: platformUserId }).select("+passwordHash");
     }
   }
 
@@ -274,9 +289,10 @@ export const disableUserService = async (loginOrEmail: string) => {
     throw createHttpError(404, "User not found");
   }
 
+  const platformUserId = await ensurePlatformUserId(user);
   user.isActive = false;
   await user.save();
-  await RefreshTokenCollection.updateMany({ userId: user.userId, revokedAt: null }, { revokedAt: new Date() });
+  await RefreshTokenCollection.updateMany({ userId: platformUserId, revokedAt: null }, { revokedAt: new Date() });
 
   return { message: "User has been disabled successfully" };
 };
@@ -292,6 +308,7 @@ export const enableUserService = async (loginOrEmail: string) => {
     throw createHttpError(404, "User not found");
   }
 
+  await ensurePlatformUserId(user);
   user.isActive = true;
   await user.save();
   return { message: "User has been enabled successfully" };
